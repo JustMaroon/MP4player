@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MP3 Player from ZIP</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+</head>
+<body>
+
+    <h1>MP3 Player from ZIP Archive</h1>
+    <input type="file" id="zipFileInput" accept=".zip">
+    <button id="playButton" disabled>Play Random</button>
+    <div id="nowPlaying"></div>
+
+    <script>
+        const zipFileInput = document.getElementById('zipFileInput');
+        const playButton = document.getElementById('playButton');
+        const nowPlaying = document.getElementById('nowPlaying');
+        let audioFiles = [];
+
+        zipFileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    JSZip.loadAsync(e.target.result).then(function(zip) {
+                        audioFiles = [];
+                        zip.forEach(function (relativePath, zipEntry) {
+                            if (zipEntry.name.endsWith('.mp3')) {
+                                audioFiles.push(zipEntry);
+                            }
+                        });
+                        if (audioFiles.length > 0) {
+                            playButton.disabled = false;
+                            alert("MP3 files loaded successfully!");
+                        } else {
+                            alert("No MP3 files found in the ZIP archive.");
+                        }
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        });
+
+        playButton.addEventListener('click', function() {
+            if (audioFiles.length > 0) {
+                const randomIndex = Math.floor(Math.random() * audioFiles.length);
+                const selectedFile = audioFiles[randomIndex];
+
+                selectedFile.async("blob").then(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const sound = new Howl({
+                        src: [url],
+                        format: ['mp3'],
+                        onend: function() {
+                            URL.revokeObjectURL(url); // Clean up the URL object
+                        }
+                    });
+                    sound.play();
+                    nowPlaying.textContent = "Now Playing: " + selectedFile.name;
+                });
+            }
+        });
+    </script>
+
+</body>
+</html>
